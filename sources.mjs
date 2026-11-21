@@ -19,14 +19,24 @@ function parseHTML(html) {
   template.innerHTML = html;
   return template.content;
 }
-function entries(group, domain) {
+function entries(group, domain, documentFragment) {
   const items = [];
   for (const row of group) {
     if (row.querySelector('li')) continue;
-    const source = [...row.querySelectorAll('a.external, .reference a')].map(a => {
-      const href = a.getAttribute('href') ?? '';
+    const citations = [...row.querySelectorAll('.reference a[href^="#"]')].flatMap(anchor => {
+      const id = anchor.getAttribute('href').slice(1);
+      const note = documentFragment.getElementById(id);
+      return note ? [...note.querySelectorAll('a.external')] : [];
+    });
+    const links = [...row.querySelectorAll('a.external'), ...citations];
+    const source = links.map(link => {
+      const href = link.getAttribute('href') ?? '';
       return safeLink(href.startsWith('//') ? 'https:' + href : href);
-    }).find(url=>url && !new URL(url).hostname.endsWith('wikipedia.org'));
+    }).find(url => {
+      if (!url) return false;
+      const host = new URL(url).hostname;
+      return host !== 'wikipedia.org' && !host.endsWith('.wikipedia.org');
+    });
     const copy = row.cloneNode(true);
     copy.querySelectorAll('a.external, sup, .reference, .mw-editsection').forEach(node=>node.remove());
     const title = copy.textContent.replace(/\s+/g, ' ').trim();
@@ -41,7 +51,7 @@ export function parseWiki(html, language, date) {
   const dom = parseHTML(html);
   if (language==='en') {
     const body = dom.querySelector('.vevent .description, .current-events-content, .description');
-    return entries((body ?? dom.querySelector('.mw-parser-output') ?? dom).querySelectorAll('li'), 'Wikipedia');
+    return entries((body ?? dom.querySelector('.mw-parser-output') ?? dom).querySelectorAll('li'), 'Wikipedia', dom);
   }
   const headings = [...dom.querySelectorAll('h2, h3, h4')];
   const day = (date.getUTCMonth()+1)+'月'+date.getUTCDate()+'日';
@@ -54,7 +64,7 @@ export function parseWiki(html, language, date) {
     found.push(...next.querySelectorAll('li'));
     next = next.nextElementSibling;
   }
-  return entries(found, 'Wikipedia');
+  return entries(found, 'Wikipedia', dom);
 }
 export async function wikiNews(value, language, signal) {
   const date = stableDate(value), month = date.getUTCMonth()+1, day=date.getUTCDate(), year=date.getUTCFullYear();
