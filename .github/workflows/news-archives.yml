@@ -1,0 +1,40 @@
+name: Build dated news archives
+
+on:
+  workflow_dispatch:
+    inputs:
+      months:
+        description: Months to index (1–24)
+        required: true
+        default: '2'
+
+permissions:
+  contents: write
+
+concurrency: public-headline-cache
+
+jobs:
+  archive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 17
+    steps:
+      - uses: actions/checkout@v4
+      - name: Open the cache branch
+        run: |
+          git fetch --no-tags origin +refs/heads/news-cache:refs/remotes/origin/news-cache
+          git worktree add --detach /tmp/daily-news-cache origin/news-cache
+      - name: Prepare archive parser
+        run: npm install --prefix "$RUNNER_TEMP/archive-parser" --no-audit --no-fund --ignore-scripts linkedom@0.18.12
+      - name: Index Wikipedia by date
+        env:
+          ARCHIVE_MONTHS: ${{ inputs.months }}
+        run: node scripts/build-archives.mjs /tmp/daily-news-cache/archive "$ARCHIVE_MONTHS" "$RUNNER_TEMP/archive-parser/node_modules/linkedom/esm/index.js"
+      - name: Publish dated archive indexes
+        working-directory: /tmp/daily-news-cache
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add archive
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "Update dated public news archives"
+          git push origin HEAD:news-cache

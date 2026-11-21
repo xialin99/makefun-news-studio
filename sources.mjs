@@ -47,10 +47,17 @@ function entries(group, domain, documentFragment) {
   }
   return items;
 }
-export function parseWiki(html, language, date) {
+export function parseWiki(html, language, date, monthly = false) {
   const dom = parseHTML(html);
   if (language==='en') {
-    const body = dom.querySelector('.vevent .description, .current-events-content, .description');
+    let day = dom;
+    if (monthly) {
+      const id = date.getUTCFullYear()+'_'+months.format(date)+'_'+date.getUTCDate();
+      day = dom.getElementById(id);
+      if (!day) return [];
+    }
+    const body = day.querySelector('.description, .current-events-content');
+    if (monthly && !body) return [];
     return entries((body ?? dom.querySelector('.mw-parser-output') ?? dom).querySelectorAll('li'), 'Wikipedia', dom);
   }
   const headings = [...dom.querySelectorAll('h2, h3, h4')];
