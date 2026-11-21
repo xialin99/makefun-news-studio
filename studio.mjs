@@ -97,12 +97,19 @@ async function load(date){
     }catch{failed=true;return null;}
   };
   const today=date===localDate();
-  const first=await Promise.all([
-    run(signal=>wikiNews(date,language,signal),'archive'),
-    recent&&today ? run(signal=>indexedNews(date,language,signal),'indexed') : null
-  ]);
-  let result=first.find(item=>item?.items.length);
-  if(!result && !current.signal.aborted){
+  let result;
+  if(today){
+    const saved=await run(signal=>cachedNews(date,language,signal),'cached');
+    if(saved?.items.length)result=saved;
+  }
+  if(!result&&!current.signal.aborted){
+    const first=await Promise.all([
+      run(signal=>wikiNews(date,language,signal),'archive'),
+      recent&&today ? run(signal=>indexedNews(date,language,signal),'indexed') : null
+    ]);
+    result=first.find(item=>item?.items.length);
+  }
+  if(!result && !today && !current.signal.aborted){
     const saved=await run(signal=>cachedNews(date,language,signal),'cached');
     if(saved?.items.length)result=saved;
   }

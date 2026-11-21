@@ -27,6 +27,7 @@ With Python 3, run `python -m http.server 8080` in the extracted project folder,
 ## 资料与许可 / Sources and licensing
 
 - [Wikipedia’s current events archive](https://en.wikipedia.org/wiki/Portal:Current_events) and [中文维基百科新闻动态](https://zh.wikipedia.org/wiki/Portal:新聞動態)。Wikipedia 内容带原页出处，适用 [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)。
+- [GDELT Article List RSS](https://blog.gdeltproject.org/announcing-the-gdelt-article-list-rss-feed/) 提供定时更新的「今天」备用收录；缓存保留原文标题、报道链接和收录时间。 / The dated backup uses the public GDELT Article List RSS and retains source headlines, links and index timestamps.
 - [GDELT DOC API](https://blog.gdeltproject.org/gdelt-doc-2-0-api-debuts/)。索引结果链接到原发布者，报道及标题的权利归相应权利人。
 - [11 月 20 日参赛原稿](https://github.com/xialin99/makefun-world-news-2026-11-20) · [11 月 21 日参赛原稿](https://github.com/xialin99/makefun-world-ledger-2026-11-21)。
 - 项目代码使用 [MIT 许可证](LICENSE) / Project code is [MIT licensed](LICENSE).
