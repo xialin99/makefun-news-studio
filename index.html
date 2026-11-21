@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>每日新闻制图 / Daily News Studio</title>
+<link rel="stylesheet" href="styles.css">
+<script type="module" src="studio.mjs"></script>
+</head>
+<body>
+<header><a class="wordmark" href="./" data-copy="brand">每日新闻制图</a><label><span class="sr" data-copy="language">界面语言</span><select id="language"><option value="zh">简体中文</option><option value="en">English</option></select></label></header>
+<main>
+  <section class="intro"><h1 data-copy="heading">把一天的新闻做成一张图</h1><p data-copy="intro">选日期载入报道，挑选想保留的条目，再下载 PNG。</p></section>
+  <div class="workspace">
+    <section class="editor" aria-labelledby="controls-title">
+      <h2 id="controls-title" data-copy="controls">选日期和新闻</h2>
+      <form id="date-form">
+        <label for="date" data-copy="date">新闻日期</label>
+        <div class="date-row"><input id="date" type="date" required><button id="today" type="button" data-copy="today">今天</button><button class="primary" data-copy="load">加载新闻</button></div>
+      </form>
+      <p id="status" role="status" aria-live="polite"></p>
+      <div class="examples"><span data-copy="examples">离线样例</span><button type="button" data-date="2026-11-20">2026-11-20</button><button type="button" data-date="2026-11-21">2026-11-21</button></div>
+      <ul id="stories" aria-label="新闻列表"></ul>
+      <details id="manual"><summary data-copy="manual">手动录入新闻</summary><p data-copy="manualHint">每行一条标题。可在标题后加竖线和报道链接。</p><label class="sr" for="paste" data-copy="paste">新闻标题</label><textarea id="paste" rows="5" maxlength="6000" placeholder="新闻标题 | https://example.com/story"></textarea><button id="paste-button" type="button" data-copy="add">使用这些新闻</button></details>
+      <p class="credit" id="attribution" hidden><a id="source-page" target="_blank" rel="noopener noreferrer"></a> · <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener noreferrer">CC BY-SA 4.0</a></p>
+    </section>
+    <section class="output" aria-labelledby="preview-title">
+      <div class="output-header"><h2 id="preview-title" data-copy="preview">新闻图预览</h2><button id="download" type="button" class="primary" disabled data-copy="download">下载 PNG</button></div>
+      <div class="sheet" id="sheet"><canvas id="poster" width="1200" height="1440" hidden aria-label="新闻图"></canvas><p id="empty" data-copy="empty">选好新闻后，预览会出现在这里。</p></div>
+    </section>
+  </div>
+</main>
+</body>
+</html>

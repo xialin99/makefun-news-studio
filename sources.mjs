@@ -1,0 +1,95 @@
+const months = new Intl.DateTimeFormat('en', {month:'long', timeZone:'UTC'});
+export function stableDate(value) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const date = new Date(value + 'T00:00:00Z');
+  return Number.isNaN(date.valueOf()) || date.toISOString().slice(0, 10) !== value ? null : date;
+}
+export function localDate(now = new Date()) {
+  const parts = [now.getFullYear(), now.getMonth()+1, now.getDate()];
+  return parts.map((n,i)=>String(n).padStart(i===0?4:2,'0')).join('-');
+}
+export function safeLink(value) {
+  try {
+    const url = new URL(value);
+    return ['https:', 'http:'].includes(url.protocol) && !url.username && !url.password ? url.href : '';
+  } catch { return ''; }
+}
+function parseHTML(html) {
+  const template = document.createElement('template');
+  template.innerHTML = html;
+  return template.content;
+}
+function entries(group, domain) {
+  const items = [];
+  for (const row of group) {
+    if (row.querySelector('li')) continue;
+    const source = [...row.querySelectorAll('a.external, .reference a')].map(a => {
+      const href = a.getAttribute('href') ?? '';
+      return safeLink(href.startsWith('//') ? 'https:' + href : href);
+    }).find(url=>url && !new URL(url).hostname.endsWith('wikipedia.org'));
+    const copy = row.cloneNode(true);
+    copy.querySelectorAll('a.external, sup, .reference, .mw-editsection').forEach(node=>node.remove());
+    const title = copy.textContent.replace(/\s+/g, ' ').trim();
+    if (title.length >= 12 && !items.some(item=>item.title===title)) {
+      items.push({title, url:source ?? '', from:source ? new URL(source).hostname.replace(/^www\./,'') : domain});
+    }
+    if (items.length===12) break;
+  }
+  return items;
+}
+export function parseWiki(html, language, date) {
+  const dom = parseHTML(html);
+  if (language==='en') {
+    const body = dom.querySelector('.vevent .description, .current-events-content, .description');
+    return entries((body ?? dom.querySelector('.mw-parser-output') ?? dom).querySelectorAll('li'), 'Wikipedia');
+  }
+  const headings = [...dom.querySelectorAll('h2, h3, h4')];
+  const day = (date.getUTCMonth()+1)+'月'+date.getUTCDate()+'日';
+  const target = headings.find(h => h.textContent.trim().startsWith(day));
+  if (!target) return [];
+  let section = target.closest('.mw-heading') ?? target;
+  const found = [];
+  let next = section.nextElementSibling;
+  while (next && !next.matches('h2,h3,h4,.mw-heading')) {
+    found.push(...next.querySelectorAll('li'));
+    next = next.nextElementSibling;
+  }
+  return entries(found, 'Wikipedia');
+}
+export async function wikiNews(value, language, signal) {
+  const date = stableDate(value), month = date.getUTCMonth()+1, day=date.getUTCDate(), year=date.getUTCFullYear();
+  const title = language==='zh' ? year+'年'+month+'月' : 'Portal:Current events/'+year+' '+months.format(date)+' '+day;
+  const host = 'https://'+language+'.wikipedia.org';
+  const page = new URL('/wiki/'+encodeURIComponent(title.replaceAll(' ','_')),host);
+  if (language==='zh') page.hash=month+'月'+day+'日';
+  const params = new URLSearchParams({action:'parse', page:title, prop:'text', format:'json', formatversion:'2', origin:'*'});
+  if (language==='zh') params.set('variant','zh-hans');
+  const response = await fetch(host+'/w/api.php?'+params, {signal});
+  if (!response.ok) throw new Error('HTTP '+response.status);
+  const data = await response.json();
+  if (data.error?.code==='missingtitle') return {items:[], page:page.href, language};
+  if (typeof data.parse?.text!=='string') throw new Error('No article content');
+  return {items:parseWiki(data.parse.text,language,date), page:page.href, language};
+}
+
+function utcStamp(date) {return date.toISOString().slice(0,19).replace(/[^0-9]/g,'');}
+export async function indexedNews(value, language, signal) {
+  const [year,month,day]=value.split('-').map(Number);
+  const start=new Date(year,month-1,day);
+  const end=new Date(year,month-1,day+1);
+  const query='(government OR economy OR science OR sports OR health) sourcelang:'+(language==='zh'?'Chinese':'English');
+  const params=new URLSearchParams({query, mode:'artlist', format:'json', maxrecords:'20', sort:'hybridrel', startdatetime:utcStamp(start)});
+  if(end<=new Date())params.set('enddatetime',utcStamp(end));
+  const response=await fetch('https://api.gdeltproject.org/api/v2/doc/doc?'+params,{signal});
+  if(!response.ok)throw new Error('HTTP '+response.status);
+  const data=await response.json();
+  const results=new Map();
+  for(const item of data.articles ?? []) {
+    const url=safeLink(item.url), raw=item.seendate ?? '';
+    const timestamp=raw.replace(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$/,'$1-$2-$3T$4:$5:$6Z');
+    const seen=Date.parse(timestamp);
+    const title=typeof item.title==='string'?item.title.trim():'';
+    if(url && title && seen>=start.getTime() && seen<end.getTime() && !results.has(title))results.set(title,{url,title,from:new URL(url).hostname.replace(/^www\./,'')});
+  }
+  return {items:[...results.values()].slice(0,12),language,page:''};
+}
