@@ -15,7 +15,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Open the cache branch
-        run: git worktree add --detach /tmp/daily-news-cache origin/news-cache
+        run: |
+          git fetch --no-tags origin +refs/heads/news-cache:refs/remotes/origin/news-cache
+          git worktree add --detach /tmp/daily-news-cache origin/news-cache
       - name: Fetch recent index entries
         run: node scripts/build-cache.mjs /tmp/daily-news-cache/data
       - name: Update the cache branch

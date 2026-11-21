@@ -1,10 +1,10 @@
 import {samples} from './samples.mjs';
-import {localDate, safeLink, stableDate, wikiNews, indexedNews} from './sources.mjs';
+import {localDate, safeLink, stableDate, wikiNews, indexedNews, cachedNews} from './sources.mjs';
 import {drawPoster} from './poster.mjs';
 
 const copy={
- zh:{brand:'每日新闻制图',language:'界面语言',heading:'把一天的新闻做成一张图',intro:'选日期载入报道，挑选想保留的条目，再下载 PNG。',controls:'选日期和新闻',date:'新闻日期',today:'今天',load:'加载新闻',examples:'离线样例',manual:'手动录入新闻',manualHint:'每行一条标题。可在标题后加竖线和报道链接。',paste:'新闻标题',placeholder:'新闻标题 | https://example.com/story',add:'使用这些新闻',preview:'新闻图预览',download:'下载 PNG',empty:'选好新闻后，预览会出现在这里。',loading:'正在查找当天的新闻…',invalid:'请选择今天或更早的有效日期。',none:'这个日期暂时没有查到报道。可以换个日期、查看离线样例，或手动录入。',offline:'新闻来源暂时无法连接。可以用下方样例确认工具可用，或手动录入当天的标题。',manualEmpty:'请至少输入一条新闻标题。',sample:'历史参赛样例',source:'查看报道',archive:'维基百科新闻档案',indexed:'GDELT 新闻索引',manualSource:'用户录入',foreign:'找到了英文资料，新闻正文保留原文。',picked:'已选',count:'条',max:'最多选择 6 条新闻。',export:'已生成 PNG。',exportError:'未能生成 PNG，请重试。',list:'新闻列表',todaySource:'索引按报道收录时间筛选。',changeDate:'日期已变更，点击「加载新闻」继续。'},
- en:{brand:'Daily News Studio',language:'Interface language',heading:'Make a news poster for any day',intro:'Choose a date, select the stories to include, and download a PNG.',controls:'Date and stories',date:'News date',today:'Today',load:'Load news',examples:'Offline examples',manual:'Enter your own stories',manualHint:'Add one headline per line. You can add a pipe and a link after the title.',paste:'Headlines',placeholder:'Headline | https://example.com/story',add:'Use these stories',preview:'Poster preview',download:'Download PNG',empty:'Select stories to see a preview here.',loading:'Looking up news for this date…',invalid:'Select a valid date on or before today.',none:'No stories were found for this date. Try another date, use an offline example, or enter stories manually.',offline:'The news sources are unreachable right now. Try an offline example or enter headlines for this date.',manualEmpty:'Enter at least one headline.',sample:'Archived competition example',source:'Read the story',archive:'Wikipedia current events archive',indexed:'GDELT news index',manualSource:'User-entered news',foreign:'These source headlines are available in English.',picked:'Selected',count:'stories',max:'Select up to 6 stories.',export:'PNG created.',exportError:'Could not create the PNG. Please try again.',list:'Stories',todaySource:'The index uses the time each story was collected.',changeDate:'Date changed. Select “Load news” to continue.'}
+ zh:{brand:'每日新闻制图',language:'界面语言',heading:'把一天的新闻做成一张图',intro:'选日期载入报道，挑选想保留的条目，再下载 PNG。',controls:'选日期和新闻',date:'新闻日期',today:'今天',load:'加载新闻',examples:'离线样例',manual:'手动录入新闻',manualHint:'每行一条标题。可在标题后加竖线和报道链接。',paste:'新闻标题',placeholder:'新闻标题 | https://example.com/story',add:'使用这些新闻',preview:'新闻图预览',download:'下载 PNG',empty:'选好新闻后，预览会出现在这里。',loading:'正在查找当天的新闻…',invalid:'请选择今天或更早的有效日期。',none:'这个日期暂时没有查到报道。可以换个日期、查看离线样例，或手动录入。',offline:'新闻来源暂时无法连接。可以用下方样例确认工具可用，或手动录入当天的标题。',manualEmpty:'请至少输入一条新闻标题。',sample:'历史参赛样例',source:'查看报道',archive:'维基百科新闻档案',indexed:'GDELT 新闻索引',cached:'GDELT 新闻索引缓存',manualSource:'用户录入',foreign:'找到了英文资料，新闻正文保留原文。',picked:'已选',count:'条',max:'最多选择 6 条新闻。',export:'已生成 PNG。',exportError:'未能生成 PNG，请重试。',list:'新闻列表',todaySource:'索引按报道收录时间筛选。',changeDate:'日期已变更，点击「加载新闻」继续。'},
+ en:{brand:'Daily News Studio',language:'Interface language',heading:'Make a news poster for any day',intro:'Choose a date, select the stories to include, and download a PNG.',controls:'Date and stories',date:'News date',today:'Today',load:'Load news',examples:'Offline examples',manual:'Enter your own stories',manualHint:'Add one headline per line. You can add a pipe and a link after the title.',paste:'Headlines',placeholder:'Headline | https://example.com/story',add:'Use these stories',preview:'Poster preview',download:'Download PNG',empty:'Select stories to see a preview here.',loading:'Looking up news for this date…',invalid:'Select a valid date on or before today.',none:'No stories were found for this date. Try another date, use an offline example, or enter stories manually.',offline:'The news sources are unreachable right now. Try an offline example or enter headlines for this date.',manualEmpty:'Enter at least one headline.',sample:'Archived competition example',source:'Read the story',archive:'Wikipedia current events archive',indexed:'GDELT news index',cached:'Cached GDELT news index',manualSource:'User-entered news',foreign:'These source headlines are available in English.',picked:'Selected',count:'stories',max:'Select up to 6 stories.',export:'PNG created.',exportError:'Could not create the PNG. Please try again.',list:'Stories',todaySource:'The index uses the time each story was collected.',changeDate:'Date changed. Select “Load news” to continue.'}
 };
 const get=id=>document.getElementById(id);
 let language='zh';
@@ -16,7 +16,7 @@ const cache=new Map();
 function setStatus(key){
   statusKey=key;
   get('status').textContent=key ? translate(key) : stories.length ?
-    [translate(provider),sourceLanguage && sourceLanguage!==language ? translate('foreign') : '',provider==='indexed'?translate('todaySource'):'',translate('picked')+' '+selected.size+' / 6 '+translate('count')].filter(Boolean).join(' · ') : '';
+    [translate(provider),sourceLanguage && sourceLanguage!==language ? translate('foreign') : '',(provider==='indexed'||provider==='cached')?translate('todaySource'):'',translate('picked')+' '+selected.size+' / 6 '+translate('count')].filter(Boolean).join(' · ') : '';
 }
 function formatDate(value){
   return new Intl.DateTimeFormat(language==='zh'?'zh-CN':'en',{dateStyle:'full',timeZone:'UTC'}).format(stableDate(value));
@@ -102,6 +102,10 @@ async function load(date){
     recent&&today ? run(signal=>indexedNews(date,language,signal),'indexed') : null
   ]);
   let result=first.find(item=>item?.items.length);
+  if(!result && !current.signal.aborted){
+    const saved=await run(signal=>cachedNews(date,language,signal),'cached');
+    if(saved?.items.length)result=saved;
+  }
   if(!result && !current.signal.aborted && language==='zh'){
     const fallback=await run(signal=>wikiNews(date,'en',signal),'archive');
     if(fallback?.items.length)result=fallback;

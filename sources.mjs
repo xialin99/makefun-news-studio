@@ -83,23 +83,44 @@ export async function wikiNews(value, language, signal) {
 }
 
 function utcStamp(date) {return date.toISOString().slice(0,19).replace(/[^0-9]/g,'');}
-export async function indexedNews(value, language, signal) {
+function dateRange(value) {
   const [year,month,day]=value.split('-').map(Number);
-  const start=new Date(year,month-1,day);
-  const end=new Date(year,month-1,day+1);
+  return [new Date(year,month-1,day),new Date(year,month-1,day+1)];
+}
+export async function indexedNews(value, language, signal) {
+  const [start,end]=dateRange(value);
   const query='(government OR economy OR science OR sports OR health) sourcelang:'+(language==='zh'?'Chinese':'English');
   const params=new URLSearchParams({query, mode:'artlist', format:'json', maxrecords:'20', sort:'hybridrel', startdatetime:utcStamp(start)});
   if(end<=new Date())params.set('enddatetime',utcStamp(end));
   const response=await fetch('https://api.gdeltproject.org/api/v2/doc/doc?'+params,{signal});
   if(!response.ok)throw new Error('HTTP '+response.status);
   const data=await response.json();
+  return {items:indexedEntries(data.articles??[],start,end),language,page:''};
+}
+function indexedEntries(articles,start,end) {
   const results=new Map();
-  for(const item of data.articles ?? []) {
+  for(const item of articles) {
     const url=safeLink(item.url), raw=item.seendate ?? '';
     const timestamp=raw.replace(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$/,'$1-$2-$3T$4:$5:$6Z');
     const seen=Date.parse(timestamp);
     const title=typeof item.title==='string'?item.title.trim():'';
     if(url && title && seen>=start.getTime() && seen<end.getTime() && !results.has(title))results.set(title,{url,title,from:new URL(url).hostname.replace(/^www\./,'')});
   }
-  return {items:[...results.values()].slice(0,12),language,page:''};
+  return [...results.values()].slice(0,12);
+}
+export async function cachedNews(value, language, signal) {
+  const [start,end]=dateRange(value);
+  const days=[...new Set([start,new Date(end-1)].map(date=>date.toISOString().slice(0,10)))];
+  const path='https://api.github.com/repos/xialin99/makefun-news-studio/contents/data/';
+  const read=async day=>{
+    const file=path+day+'.'+language+'.json?ref=news-cache';
+    const response=await fetch(file,{signal,headers:{Accept:'application/vnd.github.raw+json'}});
+    if(response.status===404)return [];
+    if(!response.ok)throw new Error('HTTP '+response.status);
+    const rows=await response.json();
+    return Array.isArray(rows)?rows:[];
+  };
+  const pages=await Promise.allSettled(days.map(read));
+  const articles=pages.flatMap(page=>page.status==='fulfilled'?page.value:[]);
+  return {items:indexedEntries(articles,start,end),language,page:''};
 }
