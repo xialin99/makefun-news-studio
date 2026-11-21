@@ -1,169 +1,218 @@
-import {samples} from './samples.mjs';
-import {localDate, safeLink, stableDate, wikiNews, indexedNews, cachedNews} from './sources.mjs';
-import {drawPoster} from './poster.mjs';
+import { drawPoster } from './poster.mjs';
 
-const copy={
- zh:{brand:'每日新闻制图',language:'界面语言',heading:'把一天的新闻做成一张图',intro:'选日期载入报道，挑选想保留的条目，再下载 PNG。',controls:'选日期和新闻',date:'新闻日期',today:'今天',load:'加载新闻',examples:'离线样例',manual:'手动录入新闻',manualHint:'每行一条标题。可在标题后加竖线和报道链接。',paste:'新闻标题',placeholder:'新闻标题 | https://example.com/story',add:'使用这些新闻',preview:'新闻图预览',download:'下载 PNG',empty:'选好新闻后，预览会出现在这里。',loading:'正在查找当天的新闻…',invalid:'请选择今天或更早的有效日期。',none:'这个日期暂时没有查到报道。可以换个日期、查看离线样例，或手动录入。',offline:'新闻来源暂时无法连接。可以用下方样例确认工具可用，或手动录入当天的标题。',manualEmpty:'请至少输入一条新闻标题。',sample:'历史参赛样例',source:'查看报道',archive:'维基百科新闻档案',indexed:'GDELT 新闻索引',cached:'GDELT 新闻索引缓存',manualSource:'用户录入',foreign:'找到了英文资料，新闻正文保留原文。',picked:'已选',count:'条',max:'最多选择 6 条新闻。',export:'已生成 PNG。',exportError:'未能生成 PNG，请重试。',list:'新闻列表',todaySource:'索引按报道收录时间筛选。',changeDate:'日期已变更，点击「加载新闻」继续。'},
- en:{brand:'Daily News Studio',language:'Interface language',heading:'Make a news poster for any day',intro:'Choose a date, select the stories to include, and download a PNG.',controls:'Date and stories',date:'News date',today:'Today',load:'Load news',examples:'Offline examples',manual:'Enter your own stories',manualHint:'Add one headline per line. You can add a pipe and a link after the title.',paste:'Headlines',placeholder:'Headline | https://example.com/story',add:'Use these stories',preview:'Poster preview',download:'Download PNG',empty:'Select stories to see a preview here.',loading:'Looking up news for this date…',invalid:'Select a valid date on or before today.',none:'No stories were found for this date. Try another date, use an offline example, or enter stories manually.',offline:'The news sources are unreachable right now. Try an offline example or enter headlines for this date.',manualEmpty:'Enter at least one headline.',sample:'Archived competition example',source:'Read the story',archive:'Wikipedia current events archive',indexed:'GDELT news index',cached:'Cached GDELT news index',manualSource:'User-entered news',foreign:'These source headlines are available in English.',picked:'Selected',count:'stories',max:'Select up to 6 stories.',export:'PNG created.',exportError:'Could not create the PNG. Please try again.',list:'Stories',todaySource:'The index uses the time each story was collected.',changeDate:'Date changed. Select “Load news” to continue.'}
+const copy = {
+  zh: {
+    brand: '每日新闻制图', language: '界面语言', heading: '把你整理的新闻做成一张图',
+    intro: '选日期，录入标题或导入文本，在浏览器里生成 PNG。', controls: '日期和内容', date: '图片日期',
+    today: '今天', paste: '新闻标题', hint: '每行一条标题。可在标题后加竖线和来源链接。最多录入 12 条，每张图最多选 6 条。',
+    placeholder: '你整理的标题 | https://example.com/story', generate: '生成预览', import: '导入 TXT',
+    example: '试用虚构示例', preview: '图片预览', download: '下载 PNG', empty: '输入标题后，点击「生成预览」。',
+    invalidDate: '请选择一个有效日期。', noStories: '请至少输入一条标题。', max: '每张图最多选择 6 条。',
+    tooMany: '最多录入 12 条标题。请删减后再生成。', choose: '选入图片的条目', picked: n => '已选 ' + n + ' / 6 条',
+    fileError: '无法读取文件。请选择 UTF-8 编码的 TXT 文件，不超过 24 KB。', imported: '文本已导入，可以先编辑，再点「生成预览」。',
+    ready: '已生成 PNG。', downloadError: '无法生成 PNG，请重试。', userSource: '用户录入内容',
+    exampleSource: '虚构示例 · 仅演示排版', exampleTitles: ['虚构示例｜社区图书角今日开放', '虚构示例｜周末举办公园写生活动']
+  },
+  en: {
+    brand: 'Daily News Studio', language: 'Interface language', heading: 'Turn your headlines into a poster',
+    intro: 'Choose a date, enter or import headlines, and create a PNG in your browser.', controls: 'Date and content', date: 'Poster date',
+    today: 'Today', paste: 'Headlines', hint: 'Enter one headline per line. An optional pipe can separate it from its source link. Enter up to 12 headlines and select up to 6.',
+    placeholder: 'Your headline | https://example.com/story', generate: 'Generate preview', import: 'Import TXT',
+    example: 'Try fictional examples', preview: 'Poster preview', download: 'Download PNG', empty: 'Enter headlines, then select “Generate preview”.',
+    invalidDate: 'Select a valid date.', noStories: 'Enter at least one headline.', max: 'Select up to 6 headlines per poster.',
+    tooMany: 'Enter at most 12 headlines, then generate the preview again.', choose: 'Headlines on the poster', picked: n => n + ' of 6 headlines selected',
+    fileError: 'Could not read the file. Choose a UTF-8 TXT file up to 24 KB.', imported: 'Text imported. Edit it if needed, then select “Generate preview”.',
+    ready: 'PNG created.', downloadError: 'Could not create the PNG. Try again.', userSource: 'User-provided content',
+    exampleSource: 'Fictional sample · Layout demo', exampleTitles: ['Fictional sample: Neighborhood reading corner opens', 'Fictional sample: Weekend sketching event in the park']
+  }
 };
-const get=id=>document.getElementById(id);
-let language='zh';
-try {if(localStorage.getItem('daily-news-language')==='en') language='en';} catch {}
-const translate=key=>copy[language][key];
-const dateInput=get('date');
-let activeDate='', stories=[], selected=new Set(), provider='', sourcePage='', sourceLanguage='', statusKey='', request;
-const cache=new Map();
-function setStatus(key){
-  statusKey=key;
-  get('status').textContent=key ? translate(key) : stories.length ?
-    [translate(provider),sourceLanguage && sourceLanguage!==language ? translate('foreign') : '',(provider==='indexed'||provider==='cached')?translate('todaySource'):'',translate('picked')+' '+selected.size+' / 6 '+translate('count')].filter(Boolean).join(' · ') : '';
+
+const get = id => document.getElementById(id);
+const dateInput = get('date');
+const input = get('paste');
+const canvas = get('poster');
+let language = 'zh';
+try { if (localStorage.getItem('daily-news-language') === 'en') language = 'en'; } catch {}
+const t = key => copy[language][key];
+
+let stories = [], selected = new Set(), sample = false, status = '';
+let renderedDate;
+let inputRevision = 0;
+
+function today() {
+  const now = new Date();
+  return [now.getFullYear(), now.getMonth() + 1, now.getDate()]
+    .map((part, index) => String(part).padStart(index ? 2 : 4, '0')).join('-');
 }
-function formatDate(value){
-  return new Intl.DateTimeFormat(language==='zh'?'zh-CN':'en',{dateStyle:'full',timeZone:'UTC'}).format(stableDate(value));
+
+function posterDate() {
+  const value = dateInput.value;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const date = new Date(value + 'T00:00:00Z');
+  return Number.isFinite(date.valueOf()) && date.toISOString().slice(0, 10) === value ? date : null;
 }
-function refreshCopy(){
-  document.documentElement.lang=language==='zh'?'zh-CN':'en';
-  document.title=translate('brand');
-  get('language').value=language;
-  for(const el of document.querySelectorAll('[data-copy]')) el.textContent=translate(el.dataset.copy);
-  get('paste').placeholder=translate('placeholder');
-  get('stories').setAttribute('aria-label',translate('list'));
-  get('poster').setAttribute('aria-label',translate('preview'));
+
+function sourceLink(value) {
+  try {
+    const url = new URL(value);
+    if (['https:', 'http:'].includes(url.protocol) && !url.username && !url.password) return url;
+  } catch {}
+  return null;
 }
-function render(updateStories=true){
-  if(updateStories){
-    get('stories').replaceChildren(...stories.map((story,index)=>{
-      const li=document.createElement('li');
-      const input=document.createElement('input');
-      input.type='checkbox';input.id='story-'+index;input.checked=selected.has(index);
-      input.addEventListener('change',()=>{
-        if(input.checked && selected.size===6){input.checked=false;setStatus('max');return;}
-        if(input.checked) selected.add(index); else selected.delete(index);
-        render(false);setStatus('');
-      });
-      const label=document.createElement('label');
-      label.htmlFor=input.id;label.textContent=story.title;
-      li.append(input,label);
-      if(story.url){
-        const link=document.createElement('a');
-        link.href=story.url;link.textContent=(story.from||translate('source'))+' ↗';link.target='_blank';link.rel='noopener noreferrer';
-        li.append(link);
+
+function setStatus(key = '') {
+  status = key;
+  get('status').textContent = key ? t(key) : stories.length ? t('picked')(selected.size) : '';
+}
+
+function refreshLanguage() {
+  document.documentElement.lang = language === 'zh' ? 'zh-CN' : 'en';
+  document.title = t('brand');
+  get('language').value = language;
+  for (const node of document.querySelectorAll('[data-copy]')) node.textContent = t(node.dataset.copy);
+  input.placeholder = t('placeholder');
+  canvas.setAttribute('aria-label', t('preview'));
+}
+
+function renderStories() {
+  get('story-picker').hidden = stories.length === 0;
+  get('stories').replaceChildren(...stories.map((story, index) => {
+    const row = document.createElement('li');
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.id = 'story-' + index;
+    checkbox.checked = selected.has(index);
+    const label = document.createElement('label');
+    label.htmlFor = checkbox.id;
+    label.textContent = story.title;
+    checkbox.addEventListener('change', () => {
+      if (checkbox.checked && selected.size === 6) {
+        checkbox.checked = false;
+        setStatus('max');
+        return;
       }
-      return li;
-    }));
-  }
-  const included=stories.filter((_,index)=>selected.has(index));
-  const canvas=get('poster'), hasNews=Boolean(included.length);
-  canvas.hidden=!hasNews;get('empty').hidden=hasNews;get('download').disabled=!hasNews;
-  get('attribution').hidden=provider!=='archive';
-  if(provider==='archive'){
-    get('source-page').href=sourcePage;
-    get('source-page').textContent=translate('archive');
-  }
-  if(!hasNews)return;
-  const citation=translate(provider)+(provider==='archive'?' · CC BY-SA 4.0 · '+sourcePage:'');
-  drawPoster(canvas,{date:formatDate(activeDate),title:translate('brand'),source:citation,stories:included,language});
+      if (checkbox.checked) selected.add(index);
+      else selected.delete(index);
+      renderPoster();
+      setStatus();
+    });
+    row.append(checkbox, label);
+    if (story.url) {
+      const link = document.createElement('a');
+      link.href = story.url.href;
+      link.textContent = story.url.hostname;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      row.append(link);
+    }
+    return row;
+  }));
 }
-function setStories(items, date, origin, url='', originalLanguage=''){
-  activeDate=date;stories=items;provider=origin;sourcePage=url;sourceLanguage=originalLanguage;
-  selected=new Set(items.slice(0,6).map((_,i)=>i));
-  if(items.length) get('manual').open=origin==='manualSource';
-  render();setStatus('');
+
+function renderPoster() {
+  const date = posterDate();
+  const chosen = stories.filter((_, index) => selected.has(index));
+  const visible = Boolean(date && chosen.length);
+  renderedDate = visible ? dateInput.value : undefined;
+  canvas.hidden = !visible;
+  get('empty').hidden = visible;
+  get('download').disabled = !visible;
+  if (!visible) return;
+  const dateLabel = new Intl.DateTimeFormat(language === 'zh' ? 'zh-CN' : 'en', {
+    dateStyle: 'full', timeZone: 'UTC'
+  }).format(date);
+  drawPoster(canvas, {
+    date: dateLabel, title: t('brand'), source: t(sample ? 'exampleSource' : 'userSource'),
+    stories: chosen.map(story => ({ title: story.title, from: story.url?.hostname ?? '' })), language
+  });
 }
-function sampleStories(date){
-  const [texts,url]=samples[date];
-  return texts[language].map(title=>({title,url,from:translate('sample')}));
+
+function clearPoster() {
+  stories = [];
+  selected.clear();
+  renderStories();
+  renderPoster();
 }
-async function load(date){
-  request?.abort();
-  if(!stableDate(date) || date>localDate()){setStories([],date,'');setStatus('invalid');return;}
-  dateInput.value=date;
-  if(Object.hasOwn(samples,date)){setStories(sampleStories(date),date,'sample');return;}
-  const key=date+'|'+language;
-  if(cache.has(key)){
-    const {items,page,language:origin,provider:originProvider}=cache.get(key);
-    setStories(items,date,originProvider,page,origin);
-    return;
-  }
-  const current=new AbortController();
-  request=current;setStories([],date,'');setStatus('loading');
-  let failed=false;
-  const recent=(stableDate(localDate())-stableDate(date))/86400000<85;
-  const run=async (loader, originProvider)=>{
-    try {
-      const timeout=AbortSignal.timeout(8500);
-      const result=await loader(AbortSignal.any([current.signal,timeout]));
-      return {...result,provider:originProvider};
-    }catch{failed=true;return null;}
-  };
-  const today=date===localDate();
-  let result;
-  if(today){
-    const saved=await run(signal=>cachedNews(date,language,signal),'cached');
-    if(saved?.items.length)result=saved;
-  }
-  if(!result&&!current.signal.aborted){
-    const first=await Promise.all([
-      run(signal=>wikiNews(date,language,signal),'archive'),
-      recent&&today ? run(signal=>indexedNews(date,language,signal),'indexed') : null
-    ]);
-    result=first.find(item=>item?.items.length);
-  }
-  if(!result && !today && !current.signal.aborted){
-    const saved=await run(signal=>cachedNews(date,language,signal),'cached');
-    if(saved?.items.length)result=saved;
-  }
-  if(!result && !current.signal.aborted && language==='zh'){
-    const fallback=await run(signal=>wikiNews(date,'en',signal),'archive');
-    if(fallback?.items.length)result=fallback;
-  }
-  if(!result && !current.signal.aborted && recent&&!today){
-    const fallback=await run(signal=>indexedNews(date,language,signal),'indexed');
-    if(fallback?.items.length)result=fallback;
-  }
-  if(current.signal.aborted) return;
-  if(result){
-    cache.set(key,result);
-    setStories(result.items,date,result.provider,result.page,result.language);
-  }else{setStatus(failed?'offline':'none');get('manual').open=true;}
+
+function applyContent() {
+  if (!posterDate()) { clearPoster(); setStatus('invalidDate'); return; }
+  const rows = input.value.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+  if (!rows.length) { clearPoster(); setStatus('noStories'); return; }
+  if (rows.length > 12) { clearPoster(); setStatus('tooMany'); return; }
+  stories = rows.map(line => {
+    const parts = line.match(/^(.*?)\s*\|\s*(https?:\/\/\S+)$/i);
+    const url = parts ? sourceLink(parts[2]) : null;
+    return {title: url && parts[1].trim() ? parts[1].trim() : line, url};
+  });
+  selected = new Set(stories.slice(0, 6).map((_, index) => index));
+  renderStories();
+  renderPoster();
+  setStatus();
 }
-dateInput.max=localDate();
-dateInput.value=Object.hasOwn(samples,new URLSearchParams(location.search).get('date'))?new URLSearchParams(location.search).get('date'):localDate();
-dateInput.addEventListener('change',()=>{
-  request?.abort();setStories([],dateInput.value,'');setStatus('changeDate');
+
+dateInput.value = today();
+dateInput.addEventListener('change', () => {
+  renderPoster();
+  setStatus(posterDate() ? '' : 'invalidDate');
 });
-get('date-form').addEventListener('submit',event=>{event.preventDefault();load(dateInput.value);});
-get('today').onclick=()=>{dateInput.max=localDate();load(localDate());};
-for(const button of document.querySelectorAll('[data-date]')) button.onclick=()=>load(button.dataset.date);
-get('language').onchange=event=>{
-  language=event.target.value;
-  try {localStorage.setItem('daily-news-language',language);} catch {}
-  refreshCopy();
-  if(provider==='sample'){
-    const choices=selected;stories=sampleStories(activeDate);selected=choices;render();setStatus(statusKey);
-  }else if(provider==='manualSource'){render();setStatus(statusKey);}
-  else load(dateInput.value);
+get('today').onclick = () => { dateInput.value = today(); renderPoster(); setStatus(); };
+input.addEventListener('input', () => {
+  inputRevision++;
+  sample = false;
+  clearPoster();
+  setStatus();
+});
+get('content-form').addEventListener('submit', event => { event.preventDefault(); applyContent(); });
+get('example').onclick = () => {
+  inputRevision++;
+  sample = true;
+  input.value = t('exampleTitles').join('\n');
+  if (!posterDate()) dateInput.value = today();
+  applyContent();
 };
-get('paste-button').onclick=()=>{
-  const date=dateInput.value;
-  if(!stableDate(date) || date>localDate()){setStatus('invalid');return;}
-  const manual=get('paste').value.split(/\r?\n/).map(line=>{
-    const [title,url]=line.split(/\s+\|\s+/,2);
-    const safe=safeLink(url?.trim() ?? '');
-    return {title:title.trim(),url:safe,from:safe?new URL(safe).hostname:''};
-  }).filter(item=>item.title).slice(0,12);
-  if(!manual.length){setStatus('manualEmpty');return;}
-  request?.abort();setStories(manual,date,'manualSource');
+get('language').onchange = event => {
+  language = event.target.value === 'en' ? 'en' : 'zh';
+  try { localStorage.setItem('daily-news-language', language); } catch {}
+  refreshLanguage();
+  if (sample) {
+    input.value = t('exampleTitles').join('\n');
+    stories = t('exampleTitles').map(title => ({ title }));
+    renderStories();
+  }
+  renderPoster();
+  setStatus(status);
 };
-get('download').onclick=()=>{
-  const filename='daily-news-'+activeDate+'-'+language+'.png';
-  get('poster').toBlob(blob=>{
-    if(!blob){setStatus('exportError');return;}
-    const link=document.createElement('a');
-    const url=URL.createObjectURL(blob);
-    link.href=url;link.download=filename;link.click();
-    setTimeout(()=>URL.revokeObjectURL(url),30000);setStatus('export');
-  },'image/png');
+get('import-button').onclick = () => get('import-file').click();
+get('import-file').onchange = async event => {
+  const file = event.target.files[0];
+  event.target.value = '';
+  if (!file) return;
+  const revision = ++inputRevision;
+  try {
+    if (!/\.txt$/i.test(file.name) || file.size > 24000) throw Error();
+    const text = new TextDecoder('utf-8', {fatal:true}).decode(await file.arrayBuffer());
+    if (text.length > 6000) throw Error();
+    if (revision !== inputRevision) return;
+    input.value = text;
+    sample = false;
+    clearPoster();
+    setStatus('imported');
+  } catch { if (revision === inputRevision) setStatus('fileError'); }
 };
-refreshCopy();
-load(dateInput.value);
+get('download').onclick = () => {
+  if (!renderedDate) return;
+  const name = 'daily-news-' + renderedDate + '-' + language + '.png';
+  canvas.toBlob(blob => {
+    if (!blob) { setStatus('downloadError'); return; }
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = name;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 30000);
+    setStatus('ready');
+  }, 'image/png');
+};
+
+refreshLanguage();
+renderPoster();

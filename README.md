@@ -2,32 +2,28 @@
 
 ## 中文 · 第一次使用
 
-1. [打开在线工具](https://xialin99.github.io/makefun-news-studio/)。打开时会尝试加载今天的新闻。
-2. 想看历史日期，在日历里选日期，点击 **加载新闻**。首次试用可点击 **2026-11-20** 或 **2026-11-21**，这两个离线样例随项目附带。
-3. 每张图最多选六条。检查右侧预览后，点击 **下载 PNG**。图片保存到浏览器的下载位置。
-4. 当天的资料暂未收录或网络无法连接时，可以展开 **手动录入新闻**，每行写一个标题，再点击 **使用这些新闻**。
+1. [打开网页工具](https://xialin99.github.io/makefun-news-studio/)。无需安装或登录。
+2. 选择图片日期，默认是今天。想先看效果，可以点击 **试用虚构示例**。
+3. 在文本框每行输入一条自己整理的标题，或点 **导入 TXT** 选择 UTF-8 纯文本文件。想附来源，写成 `标题 | https://example.com/story`。最多 12 条，每张图可选 6 条。
+4. 点击 **生成预览**，勾选想保留的标题，再点 **下载 PNG**。图片会保存到浏览器的下载文件夹。
 
-右上角可以切换 **English**。新闻正文按资料来源显示，英文档案回退会在界面提示。Wikipedia 按档案日期，GDELT 按用户本地时区的索引收录日期。数据覆盖因日期、语言和来源而异。编辑与生成 PNG 在浏览器里完成。
+界面默认中文，右上角可切换 **English**。手动输入、文件读取和制图都在浏览器完成。公开版不自动抓取、缓存或展示第三方新闻。导入和发布图片时，请使用自己有权分享的内容。
 
 ## English · First use
 
-1. [Open Daily News Studio](https://xialin99.github.io/makefun-news-studio/). It tries to load today’s stories on opening.
-2. Pick another date and choose **Load news**. Use either dated offline example for a quick first run.
-3. Select up to six stories, check the preview, and choose **Download PNG**.
-4. If a source has no coverage or a connection fails, expand **Enter your own stories**. Add one title per line and choose **Use these stories**.
+1. [Open the browser tool](https://xialin99.github.io/makefun-news-studio/). No install or account is required.
+2. Choose a poster date. It defaults to today. Select **Try fictional examples** to see a sample.
+3. Enter one headline per line, or choose **Import TXT** to open a UTF-8 text file. Add an optional source in the form `Headline | https://example.com/story`. Enter up to 12 headlines and choose up to 6 to include.
+4. Select **Generate preview**, choose the headlines, then **Download PNG**. Find the image in your browser’s downloads.
 
-News follows the source language. Wikipedia uses its archive date. GDELT indexes stories in a date range based on your browser’s local time zone. Coverage can vary. The browser renders the PNG locally.
+The editor reads files and creates the image in your browser. The public app does not collect, cache, or display third-party news automatically. Use content you have the right to share.
 
 ## 本地运行 / Run locally
 
-有 Python 3 时，在解压后的项目目录运行 `python -m http.server 8080`，再打开 `http://localhost:8080`。在线版无需安装。
+安装 Python 3，在解压后的项目目录运行 `python -m http.server 8080`，再访问 `http://localhost:8080`。
 
-With Python 3, run `python -m http.server 8080` in the extracted project folder, then open `http://localhost:8080`.
+With Python 3 installed, run `python -m http.server 8080` in the extracted project folder, then open `http://localhost:8080`.
 
-## 资料与许可 / Sources and licensing
+## 许可证 / License
 
-- [Wikipedia’s current events archive](https://en.wikipedia.org/wiki/Portal:Current_events) and [中文维基百科新闻动态](https://zh.wikipedia.org/wiki/Portal:新聞動態)。Wikipedia 内容带原页出处，适用 [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)。
-- [GDELT Article List RSS](https://blog.gdeltproject.org/announcing-the-gdelt-article-list-rss-feed/) 提供定时更新的「今天」备用收录；缓存保留原文标题、报道链接和收录时间。 / The dated backup uses the public GDELT Article List RSS and retains source headlines, links and index timestamps.
-- [GDELT DOC API](https://blog.gdeltproject.org/gdelt-doc-2-0-api-debuts/)。索引结果链接到原发布者，报道及标题的权利归相应权利人。
-- [11 月 20 日参赛原稿](https://github.com/xialin99/makefun-world-news-2026-11-20) · [11 月 21 日参赛原稿](https://github.com/xialin99/makefun-world-ledger-2026-11-21)。
-- 项目代码使用 [MIT 许可证](LICENSE) / Project code is [MIT licensed](LICENSE).
+项目代码使用 [MIT 许可证](LICENSE)。导入内容的许可取决于其权利人。 / The software is [MIT licensed](LICENSE). Imported content remains subject to its own rights.
