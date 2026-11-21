@@ -1,0 +1,29 @@
+name: Refresh the public headline cache
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency: public-headline-cache
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Open the cache branch
+        run: git worktree add --detach /tmp/daily-news-cache origin/news-cache
+      - name: Fetch recent index entries
+        run: node scripts/build-cache.mjs /tmp/daily-news-cache/data
+      - name: Update the cache branch
+        working-directory: /tmp/daily-news-cache
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "Update public news index cache"
+          git push origin HEAD:news-cache
