@@ -1,6 +1,8 @@
 name: Build dated news archives
 
 on:
+  schedule:
+    - cron: "19 3 * * *"
   workflow_dispatch:
     inputs:
       months:
@@ -27,7 +29,7 @@ jobs:
         run: npm install --prefix "$RUNNER_TEMP/archive-parser" --no-audit --no-fund --ignore-scripts linkedom@0.18.12
       - name: Index Wikipedia by date
         env:
-          ARCHIVE_MONTHS: ${{ inputs.months }}
+          ARCHIVE_MONTHS: ${{ inputs.months || '2' }}
         run: node scripts/build-archives.mjs /tmp/daily-news-cache/archive "$ARCHIVE_MONTHS" "$RUNNER_TEMP/archive-parser/node_modules/linkedom/esm/index.js"
       - name: Publish dated archive indexes
         working-directory: /tmp/daily-news-cache

@@ -1,5 +1,7 @@
 function splitLines(ctx, text, width, maxLines, locale) {
-  const segments = [...new Intl.Segmenter(locale, {granularity:'word'}).segment(text)].map(part=>part.segment);
+  const segments = typeof Intl.Segmenter === 'function'
+    ? [...new Intl.Segmenter(locale, {granularity:'word'}).segment(text)].map(part=>part.segment)
+    : locale === 'zh' ? Array.from(text) : text.match(/\S+\s*/g) ?? [];
   const lines = [];
   let line = '';
   for (const word of segments) {

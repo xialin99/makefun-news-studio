@@ -1,10 +1,10 @@
-import {samples} from './samples.mjs';
-import {localDate, safeLink, stableDate, wikiNews, indexedNews, cachedNews} from './sources.mjs';
-import {drawPoster} from './poster.mjs';
+import {samples} from './samples.mjs?v=20261122b';
+import {localDate, safeLink, stableDate, wikiNews, indexedNews, cachedNews, archivedNews} from './sources.mjs?v=20261122b';
+import {drawPoster} from './poster.mjs?v=20261122b';
 
 const copy={
- zh:{brand:'每日新闻制图',language:'界面语言',heading:'把一天的新闻做成一张图',intro:'选日期载入报道，挑选想保留的条目，再下载 PNG。',controls:'选日期和新闻',date:'新闻日期',today:'今天',load:'加载新闻',examples:'离线样例',manualVersion:'手动版',manual:'手动录入新闻',manualHint:'每行一条标题。可在标题后加竖线和报道链接。',paste:'新闻标题',placeholder:'新闻标题 | https://example.com/story',add:'使用这些新闻',preview:'新闻图预览',download:'下载 PNG',empty:'选好新闻后，预览会出现在这里。',loading:'正在查找当天的新闻…',invalid:'请选择今天或更早的有效日期。',none:'这个日期暂时没有查到报道。可以换个日期、查看离线样例，或手动录入。',offline:'新闻来源暂时无法连接。可以用下方样例确认工具可用，或手动录入当天的标题。',manualEmpty:'请至少输入一条新闻标题。',sample:'历史参赛样例',source:'查看报道',archive:'维基百科新闻档案',indexed:'GDELT 新闻索引',cached:'GDELT 新闻索引缓存',manualSource:'用户录入',foreign:'找到了英文资料，新闻正文保留原文。',picked:'已选',count:'条',max:'最多选择 6 条新闻。',export:'已生成 PNG。',exportError:'未能生成 PNG，请重试。',list:'新闻列表',todaySource:'索引按报道收录时间筛选。',changeDate:'日期已变更，点击「加载新闻」继续。'},
- en:{brand:'Daily News Studio',language:'Interface language',heading:'Make a news poster for any day',intro:'Choose a date, select the stories to include, and download a PNG.',controls:'Date and stories',date:'News date',today:'Today',load:'Load news',examples:'Offline examples',manualVersion:'Manual version',manual:'Enter your own stories',manualHint:'Add one headline per line. You can add a pipe and a link after the title.',paste:'Headlines',placeholder:'Headline | https://example.com/story',add:'Use these stories',preview:'Poster preview',download:'Download PNG',empty:'Select stories to see a preview here.',loading:'Looking up news for this date…',invalid:'Select a valid date on or before today.',none:'No stories were found for this date. Try another date, use an offline example, or enter stories manually.',offline:'The news sources are unreachable right now. Try an offline example or enter headlines for this date.',manualEmpty:'Enter at least one headline.',sample:'Archived competition example',source:'Read the story',archive:'Wikipedia current events archive',indexed:'GDELT news index',cached:'Cached GDELT news index',manualSource:'User-entered news',foreign:'These source headlines are available in English.',picked:'Selected',count:'stories',max:'Select up to 6 stories.',export:'PNG created.',exportError:'Could not create the PNG. Please try again.',list:'Stories',todaySource:'The index uses the time each story was collected.',changeDate:'Date changed. Select “Load news” to continue.'}
+ zh:{brand:'每日新闻制图',language:'界面语言',heading:'把一天的新闻做成一张图',intro:'选日期载入报道，挑选想保留的条目，再下载 PNG。',controls:'选日期和新闻',date:'新闻日期',today:'今天',load:'加载新闻',examples:'离线样例',manualVersion:'手动版',manual:'手动录入新闻',manualHint:'每行一条标题。可在标题后加竖线和报道链接。',paste:'新闻标题',placeholder:'新闻标题 | https://example.com/story',add:'使用这些新闻',preview:'新闻图预览',download:'下载 PNG',empty:'选好新闻后，预览会出现在这里。',loading:'正在查找当天的新闻…',invalid:'请选择今天或更早的有效日期。',none:'这个日期暂时没有查到报道。可以换个日期、查看离线样例，或手动录入。',offline:'新闻来源暂时无法连接。可以用下方样例确认工具可用，或手动录入当天的标题。',manualEmpty:'请至少输入一条新闻标题。',sample:'历史参赛样例',source:'查看报道',archive:'维基百科新闻档案',indexed:'GDELT 新闻索引',cached:'GDELT 新闻索引缓存',manualSource:'用户录入',foreign:'此日期只找到其他语言的资料，保留其原文。',picked:'已选',count:'条',max:'最多选择 6 条新闻。',export:'已生成 PNG。',exportError:'未能生成 PNG，请重试。',list:'新闻列表',todaySource:'索引按报道收录时间筛选。',changeDate:'日期已变更，点击「加载新闻」继续。'},
+ en:{brand:'Daily News Studio',language:'Interface language',heading:'Make a news poster for any day',intro:'Choose a date, select the stories to include, and download a PNG.',controls:'Date and stories',date:'News date',today:'Today',load:'Load news',examples:'Offline examples',manualVersion:'Manual version',manual:'Enter your own stories',manualHint:'Add one headline per line. You can add a pipe and a link after the title.',paste:'Headlines',placeholder:'Headline | https://example.com/story',add:'Use these stories',preview:'Poster preview',download:'Download PNG',empty:'Select stories to see a preview here.',loading:'Looking up news for this date…',invalid:'Select a valid date on or before today.',none:'No stories were found for this date. Try another date, use an offline example, or enter stories manually.',offline:'The news sources are unreachable right now. Try an offline example or enter headlines for this date.',manualEmpty:'Enter at least one headline.',sample:'Archived competition example',source:'Read the story',archive:'Wikipedia current events archive',indexed:'GDELT news index',cached:'Cached GDELT news index',manualSource:'User-entered news',foreign:'Source headlines are shown in their original language.',picked:'Selected',count:'stories',max:'Select up to 6 stories.',export:'PNG created.',exportError:'Could not create the PNG. Please try again.',list:'Stories',todaySource:'The index uses the time each story was collected.',changeDate:'Date changed. Select “Load news” to continue.'}
 };
 const get=id=>document.getElementById(id);
 let language='zh';
@@ -62,7 +62,7 @@ function render(updateStories=true){
     get('source-page').textContent=translate('archive');
   }
   if(!hasNews)return;
-  const citation=translate(provider)+(provider==='archive'?' · CC BY-SA 4.0 · '+sourcePage:['indexed','cached'].includes(provider)?' · The GDELT Project · https://www.gdeltproject.org/':'');
+  const citation=translate(provider)+(provider==='archive'?' · CC BY-SA 4.0 · '+(language==='zh'?'有摘编':'Edited excerpt')+' · '+sourcePage:['indexed','cached'].includes(provider)?' · The GDELT Project · https://www.gdeltproject.org/':'');
   drawPoster(canvas,{date:formatDate(activeDate),title:translate('brand'),source:citation,stories:included,language});
 }
 function setStories(items, date, origin, url='', originalLanguage=''){
@@ -75,13 +75,14 @@ function sampleStories(date){
   const [texts,url]=samples[date];
   return texts[language].map(title=>({title,url,from:translate('sample')}));
 }
-async function load(date){
+async function load(date, retry=false){
   request?.abort();
   if(!stableDate(date) || date>localDate()){setStories([],date,'');setStatus('invalid');return;}
   dateInput.value=date;
   if(Object.hasOwn(samples,date)){setStories(sampleStories(date),date,'sample');return;}
   const key=date+'|'+language;
-  if(cache.has(key)){
+  const previous=cache.get(key);
+  if(!retry&&previous&&Date.now()-previous.loadedAt<300000){
     const {items,page,language:origin,provider:originProvider}=cache.get(key);
     setStories(items,date,originProvider,page,origin);
     return;
@@ -90,51 +91,60 @@ async function load(date){
   request=current;setStories([],date,'');setStatus('loading');
   let failed=false;
   const recent=(stableDate(localDate())-stableDate(date))/86400000<85;
-  const run=async (loader, originProvider)=>{
-    try {
-      const timeout=AbortSignal.timeout(8500);
-      const result=await loader(AbortSignal.any([current.signal,timeout]));
-      return {...result,provider:originProvider};
-    }catch{failed=true;return null;}
-  };
   const today=date===localDate();
+  const run=async (loader, originProvider)=>{
+    if(current.signal.aborted)return null;
+    const controller=new AbortController();
+    const abort=()=>controller.abort();
+    current.signal.addEventListener('abort',abort,{once:true});
+    const timeout=setTimeout(abort,7000);
+    try {
+      const result=await loader(controller.signal);
+      return result?.items.length?{...result,provider:originProvider}:null;
+    } catch {
+      if(!current.signal.aborted)failed=true;
+      return null;
+    } finally {
+      clearTimeout(timeout);
+      current.signal.removeEventListener('abort',abort);
+    }
+  };
+  async function firstAvailable(loaders){
+    try {
+      return await Promise.any(loaders.map(([loader,provider])=>run(loader,provider).then(result=>{
+        if(!result)throw Error('Empty');
+        return result;
+      })));
+    } catch {return null;}
+  }
   let result;
   if(today){
-    const saved=await run(signal=>cachedNews(date,language,signal),'cached');
-    if(saved?.items.length)result=saved;
+    result=await run(signal=>cachedNews(date,language,signal),'cached');
+  } else {
+    result=await firstAvailable([
+      [signal=>archivedNews(date,language,signal),'archive'],
+      [signal=>cachedNews(date,language,signal),'cached']
+    ]);
+    if(!result && language==='zh')result=await run(signal=>archivedNews(date,'en',signal),'archive');
   }
   if(!result&&!current.signal.aborted){
-    const first=await Promise.all([
-      run(signal=>wikiNews(date,language,signal),'archive'),
-      recent&&today ? run(signal=>indexedNews(date,language,signal),'indexed') : null
-    ]);
-    result=first.find(item=>item?.items.length);
-  }
-  if(!result && !today && !current.signal.aborted){
-    const saved=await run(signal=>cachedNews(date,language,signal),'cached');
-    if(saved?.items.length)result=saved;
-  }
-  if(!result && !current.signal.aborted && language==='zh'){
-    const fallback=await run(signal=>wikiNews(date,'en',signal),'archive');
-    if(fallback?.items.length)result=fallback;
-  }
-  if(!result && !current.signal.aborted && recent&&!today){
-    const fallback=await run(signal=>indexedNews(date,language,signal),'indexed');
-    if(fallback?.items.length)result=fallback;
+    const loaders=[[signal=>wikiNews(date,language,signal),'archive']];
+    if(language==='zh')loaders.push([signal=>wikiNews(date,'en',signal),'archive']);
+    if(recent)loaders.push([signal=>indexedNews(date,language,signal),'indexed']);
+    result=await firstAvailable(loaders);
   }
   if(current.signal.aborted) return;
   if(result){
-    cache.set(key,result);
+    cache.set(key,{...result,loadedAt:Date.now()});
     setStories(result.items,date,result.provider,result.page,result.language);
   }else{setStatus(failed?'offline':'none');get('manual').open=true;}
 }
 dateInput.max=localDate();
-dateInput.value=Object.hasOwn(samples,new URLSearchParams(location.search).get('date'))?new URLSearchParams(location.search).get('date'):localDate();
-dateInput.addEventListener('change',()=>{
-  request?.abort();setStories([],dateInput.value,'');setStatus('changeDate');
-});
-get('date-form').addEventListener('submit',event=>{event.preventDefault();load(dateInput.value);});
-get('today').onclick=()=>{dateInput.max=localDate();load(localDate());};
+const initialDate=new URLSearchParams(location.search).get('date');
+dateInput.value=initialDate&&stableDate(initialDate)&&initialDate<=localDate()?initialDate:localDate();
+dateInput.addEventListener('change',()=>load(dateInput.value));
+get('date-form').addEventListener('submit',event=>{event.preventDefault();load(dateInput.value,true);});
+get('today').onclick=()=>{dateInput.max=localDate();load(localDate(),true);};
 for(const button of document.querySelectorAll('[data-date]')) button.onclick=()=>load(button.dataset.date);
 get('language').onchange=event=>{
   language=event.target.value;

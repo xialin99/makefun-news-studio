@@ -115,19 +115,47 @@ function indexedEntries(articles,start,end) {
   }
   return [...results.values()].slice(0,12);
 }
+const publicCache = 'https://api.github.com/repos/xialin99/makefun-news-studio/contents/';
+
+async function requestBundled(file, signal) {
+  // Give the regularly refreshed headline cache a short lead over the bundled fallback.
+  if(file.startsWith('data/'))await new Promise(resolve=>setTimeout(resolve,1000));
+  const reply=await fetch(new URL(file,import.meta.url),{signal});
+  if(!reply.ok)throw new Error('HTTP '+reply.status);
+  return reply.json();
+}
+
+async function readCache(file, signal) {
+  async function request(url, options) {
+    const reply=await fetch(url,{...options,signal});
+    if (!reply.ok) throw new Error('HTTP '+reply.status);
+    return reply.json();
+  }
+  try {
+    return await Promise.any([
+      requestBundled(file,signal),
+      request(publicCache+file+'?ref=news-cache',{headers:{Accept:'application/vnd.github.raw+json'}})
+    ]);
+  } catch { return null; }
+}
+
 export async function cachedNews(value, language, signal) {
   const [start,end]=dateRange(value);
-  const days=[...new Set([start,new Date(end-1)].map(date=>date.toISOString().slice(0,10)))];
-  const path='https://api.github.com/repos/xialin99/makefun-news-studio/contents/data/';
-  const read=async day=>{
-    const file=path+day+'.'+language+'.json?ref=news-cache';
-    const response=await fetch(file,{signal,headers:{Accept:'application/vnd.github.raw+json'}});
-    if(response.status===404)return [];
-    if(!response.ok)throw new Error('HTTP '+response.status);
-    const rows=await response.json();
-    return Array.isArray(rows)?rows:[];
-  };
-  const pages=await Promise.allSettled(days.map(read));
-  const articles=pages.flatMap(page=>page.status==='fulfilled'?page.value:[]);
+  const until=new Date(Math.min(end-1,Date.now()));
+  const days=[...new Set([start,until].map(date=>date.toISOString().slice(0,10)))];
+  const pages=await Promise.all(days.map(day=>readCache('data/'+day+'.'+language+'.json',signal)));
+  const articles=pages.flatMap(page=>Array.isArray(page)?page:[]);
   return {items:indexedEntries(articles,start,end),language,page:''};
+}
+
+export async function archivedNews(value, language, signal) {
+  const date=stableDate(value);
+  const reply=await readCache('archive/'+value.slice(0,7)+'.'+language+'.json',signal);
+  const page=safeLink(reply?.page);
+  if (!page || reply.language!==language) return {items:[],language,page:''};
+  const indexed=reply.days?.[date.getUTCDate()];
+  const items=(Array.isArray(indexed)?indexed:[]).filter(item=>typeof item.title==='string').map(item=>({
+    title:item.title, url:safeLink(item.url), from:typeof item.from==='string'?item.from:''
+  }));
+  return {items,language,page};
 }

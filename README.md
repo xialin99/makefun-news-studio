@@ -11,7 +11,7 @@
 3. 每张图最多选六条。检查右侧预览后，点击 **下载 PNG**。图片保存到浏览器的下载位置。
 4. 当天的资料暂未收录或网络无法连接时，可以展开 **手动录入新闻**，每行写一个标题，再点击 **使用这些新闻**。
 
-右上角可以切换 **English**。新闻正文按资料来源显示，英文档案回退会在界面提示。Wikipedia 按档案日期，GDELT 按用户本地时区的索引收录日期。数据覆盖因日期、语言和来源而异。编辑与生成 PNG 在浏览器里完成。
+右上角可以切换 **English**。新闻正文按资料来源显示，英文档案回退会在界面提示。Wikipedia 按档案日期，GDELT 按用户本地时区的索引收录日期。浏览器会优先使用已收录的历史日期，并在可用时查询来源。遇到中文缺失时可回退到英文资料。数据覆盖因日期、语言和来源而异。编辑与生成 PNG 在浏览器里完成。
 
 ## English · First use
 
@@ -22,7 +22,7 @@ Use automatic lookup by date, or open the [manual editor](https://xialin99.githu
 3. Select up to six stories, check the preview, and choose **Download PNG**.
 4. If a source has no coverage or a connection fails, expand **Enter your own stories**. Add one title per line and choose **Use these stories**.
 
-News follows the source language. Wikipedia uses its archive date. GDELT indexes stories in a date range based on your browser’s local time zone. Coverage can vary. The browser renders the PNG locally.
+News follows the source language. Wikipedia uses its archive date. GDELT indexes stories in a date range based on your browser’s local time zone. Available archived dates are loaded first. The editor can fall back to English when it has no Chinese results. Coverage can vary. The browser renders the PNG locally.
 
 ## 本地运行 / Run locally
 
